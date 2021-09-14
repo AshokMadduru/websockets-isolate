@@ -1,16 +1,17 @@
-# isolate_sockets
+Welcome to the isolates-sockets-poc wiki!
 
-A new Flutter application.
+This POC is about implementing and testing websockets inside isolates. To test how the data will be passed/returned between flutter's main isolate and different isolate. 
 
-## Getting Started
+From isolate's documentation:
 
-This project is a starting point for a Flutter application.
+`When the isolate receives the pause command, it stops
+  processing events from the event loop queue.
+  It may still add new events to the queue in response to, e.g., timers
+  or receive-port messages. When the isolate is resumed,
+  it starts handling the already enqueued events.`
 
-A few resources to get you started if this is your first Flutter project:
+Also tested this with some sample code and results matched the same. Isolate receive port queues events when paused and processed once resumed. 
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+**Stress test** 
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Around 1,00,000 events were sent to isolate in paused state with 20ms delay between each event, isolate queued all the events without errors and processed once resumed even after 33min(total delay between events)
