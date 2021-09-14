@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:isolate_sockets/web_socket_manager.dart';
 import 'package:web_socket_channel/status.dart' as status;
@@ -93,10 +95,13 @@ class _MyHomePageState extends State<MyHomePage> {
   void start() async {
     ReceivePort  receiverPort = ReceivePort();   // Port for isolate to receive message.
     Isolate isolate;
+    SendPort? mainToIsolatePort;
+    Capability? resumeCapability;
     isolate = await Isolate.spawn(myIsolate, receiverPort.sendPort);
     receiverPort.listen((data){
+
       if (data is SendPort) {
-        SendPort mainToIsolateStream = data;
+        mainToIsolatePort = data;
         // completer.complete(mainToIsolateStream);
       } else {
         print('[isolateToMainStream] $data');
@@ -104,6 +109,32 @@ class _MyHomePageState extends State<MyHomePage> {
       // print('Receiving: '+ data + ', ');
 
     });
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (mainToIsolatePort != null) {
+      for(var i = 0; i < 100000; i++) {
+        // print(i);
+        if (i < 10) {
+          mainToIsolatePort!.send("for $i");
+        } else if (i > 10 && i < 99000) {
+          resumeCapability ??= isolate.pause();
+          mainToIsolatePort!.send("for $i");
+        } else {
+          if (resumeCapability != null) {
+            isolate.resume(resumeCapability);
+          }
+          mainToIsolatePort!.send("for $i");
+        }
+        await Future.delayed(const Duration(milliseconds: 20));
+      }
+    }
+
+
+
+  }
+
+  void sendData() {
 
   }
 }
@@ -113,13 +144,13 @@ void myIsolate(SendPort isolateToMainStream) {
   isolateToMainStream.send(mainToIsolateStream.sendPort);
 
   mainToIsolateStream.listen((data) {
-    print('[mainToIsolateStream] $data');
+    print('[mainToIsolateStream] $data : ${DateTime.now().millisecondsSinceEpoch}');
   });
 
-  isolateToMainStream.send('This is from myIsolate()');
+  // isolateToMainStream.send('This is from myIsolate()');
 
-  WebSocketManger.socketManger.channel;
-  listenFromServer(isolateToMainStream);
+  // WebSocketManger.socketManger.channel;
+  // listenFromServer(isolateToMainStream);
 }
 
 listenFromServer(isolateToMainStream) {
